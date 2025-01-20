@@ -4,7 +4,7 @@
  * @Description: 
  * @LastEditors: ShawnPhang <https://m.palxp.cn>
  * @LastUpdateContent: Support typescript
- * @LastEditTime: 2024-04-10 07:16:48
+ * @LastEditTime: 2024-08-12 15:53:20
 -->
 <template>
   <div id="page-design-index" ref="pageDesignIndex" class="page-design-bg-color">
@@ -25,8 +25,8 @@
           <el-divider direction="vertical" />
         </div>
         <HeaderOptions ref="optionsRef" v-model="state.isContinue" @change="optionsChange">
-          <el-button size="large" class="primary-btn" @click="dealWith('save')">保存</el-button>
-          <el-button ref="ref4" size="large" class="primary-btn" plain type="primary" @click="dealWith('download')">下载作品</el-button>
+          <!-- <el-button size="large" class="primary-btn" @click="dealWith('save')">{{ $t('header.save') }}</el-button> -->
+          <el-button ref="ref4" size="large" class="primary-btn" type="primary" @click="dealWith('download')">{{ $t('header.download') }}</el-button>
         </HeaderOptions>
       </div>
     </div>
@@ -37,6 +37,8 @@
         <div class="shelter" :style="{ width: Math.floor((dPage.width * dZoom) / 100) + 'px', height: Math.floor((dPage.height * dZoom) / 100) + 'px' }"></div>
         <!-- 提供一个背景图层 -->
         <div class="shelter-bg transparent-bg" :style="{ width: Math.floor((dPage.width * dZoom) / 100) + 'px', height: Math.floor((dPage.height * dZoom) / 100) + 'px' }"></div>
+        <!-- 多画板操作组件 -->
+        <template #bottom> <multipleBoards /> </template>
       </design-board>
       <style-panel ref="ref3"></style-panel>
     </div>
@@ -86,6 +88,9 @@ import { useCanvasStore, useControlStore, useHistoryStore, useWidgetStore, useGr
 import type { ButtonInstance } from 'element-plus'
 import Tour from './components/Tour.vue'
 import createDesign from '@/components/business/create-design'
+import multipleBoards from '@/components/modules/layout/multipleBoards'
+import useHistory from '@/common/hooks/history'
+useHistory()
 
 const ref1 = ref<ButtonInstance>()
 const ref2 = ref<ButtonInstance>()
@@ -110,7 +115,7 @@ const historyStore = useHistoryStore()
 const groupStore = useGroupStore()
 const { dPage } = storeToRefs(useCanvasStore())
 const { dZoom } = storeToRefs(useCanvasStore())
-const { dHistoryParams } = storeToRefs(useHistoryStore())
+const { dHistoryParams, dHistoryStack } = storeToRefs(useHistoryStore())
 
 const state = reactive<TState>({
   style: {
@@ -130,7 +135,7 @@ const controlStore = useControlStore()
 const createDesignRef: Ref<typeof createDesign | null> = ref(null)
 
 const beforeUnload = function (e: Event): any {
-  if (dHistoryParams.value.length > 0) {
+  if (dHistoryStack.value.changes.length > 0) {
     const confirmationMessage: string = '系统不会自动保存您未修改的内容';
     (e || window.event).returnValue = (confirmationMessage as any) // Gecko and Trident
     return confirmationMessage // Gecko and WebKit
@@ -146,13 +151,14 @@ function jump2home() {
 }
 
 const undoable = computed(() => {
-  return !(
-    dHistoryParams.value.index === -1 || 
-    (dHistoryParams.value.index === 0 && dHistoryParams.value.length === dHistoryParams.value.maxLength))
+  return dHistoryParams.value.stackPointer >= 0
+  // return !(
+  //   dHistoryParams.value.index === -1 || 
+  //   (dHistoryParams.value.index === 0 && dHistoryParams.value.length === dHistoryParams.value.maxLength))
 })
 
 const redoable = computed(() => {
-  return !(dHistoryParams.value.index === dHistoryParams.value.length - 1)
+  return !(dHistoryParams.value.stackPointer === dHistoryStack.value.changes.length - 1)
 })
 
 function zoomSub() {
@@ -192,11 +198,9 @@ onBeforeUnmount(() => {
   document.removeEventListener('keyup', handleKeyup(controlStore, checkCtrl), false)
   document.oncontextmenu = null
 })
-    // ...mapActions(['selectWidget', 'initGroupJson', 'handleHistory']),
 
 function handleHistory(data: "undo" | "redo") {
   historyStore.handleHistory(data)
-  // store.dispatch('handleHistory', data)
 }
 
 function changeLineGuides() {

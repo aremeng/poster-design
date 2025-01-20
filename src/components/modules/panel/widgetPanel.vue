@@ -37,7 +37,6 @@ const state = reactive({
   active: true,
 })
 const clickClassify = (index: number) => {
-  console.log('index' ,index)
   state.activeWidgetClassify = index
   state.active = true
 }
@@ -150,7 +149,7 @@ defineExpose({
     left: 394px;
     pointer-events: none;
     z-index: 99;
-    width: 20px;
+    width: 15px;
     height: 100%;
     display: -webkit-box;
     display: -webkit-flex;

@@ -17,6 +17,7 @@
       fontSize: params.fontSize + 'px',
       color: params.color,
       textAlign: params.textAlign,
+      textAlignLast: params.textAlignLast,
       fontWeight: params.fontWeight,
       fontStyle: params.fontStyle,
       textDecoration: params.textDecoration,
@@ -45,13 +46,7 @@
         v-html="params.text"
       ></div>
     </template>
-    <div
-      ref="editWrap" :style="{ fontFamily: `'${params.fontClass.value}'` }"
-      class="edit-text" spellcheck="false" 
-      :contenteditable="state.editable ? 'plaintext-only' : false"
-      @input="writingText($event)"
-      @blur="writeDone($event)"
-      v-html="params.text"></div>
+    <div ref="editWrap" :style="{ fontFamily: `'${params.fontClass.value}'` }" class="edit-text" spellcheck="false" :contenteditable="state.editable ? 'plaintext-only' : false" @input="writingText($event)" @blur="writeDone($event)" v-html="params.text"></div>
   </div>
 </template>
 
@@ -61,7 +56,7 @@
 
 import { reactive, toRefs, computed, onUpdated, watch, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { fontWithDraw } from '@/utils/widgets/loadFontRule'
+import { fontMinWithDraw } from '@/utils/widgets/loadFontRule'
 import getGradientOrImg from './getGradientOrImg'
 import { wTextSetting } from './wTextSetting'
 import { useForceStore, useHistoryStore, useWidgetStore } from '@/store'
@@ -95,7 +90,7 @@ const widget = ref<HTMLElement | null>(null)
 const editWrap = ref<HTMLElement | null>(null)
 
 const dActiveElement = computed(() => widgetStore.dActiveElement)
-const isDraw = computed(() => route.name === 'Draw' && fontWithDraw)
+const isDraw = computed(() => route.name === 'Draw')
 
 onUpdated(() => {
   updateRecord()
@@ -122,9 +117,9 @@ watch(
 
     if (font.url && !isDone) {
       if (font.id && isDraw.value) {
-        // 如果为绘制模式，且开启了字体抽取，那么会跳过加载字体url的逻辑
-        // 此前该功能在demo中存在换行bug，实际上是由于抽取字体时忽略了空格导致的
         state.loading = false
+      }
+      if (fontMinWithDraw) {
         return
       }
       state.loading = !isDraw.value
@@ -147,14 +142,7 @@ watch(
       uuid: String(props.params.uuid),
       key: 'editable',
       value,
-      pushHistory: false,
     })
-    // store.dispatch('updateWidgetData', {
-    //   uuid: props.params.uuid,
-    //   key: 'editable',
-    //   value,
-    //   pushHistory: false,
-    // })
   },
 )
 
@@ -171,20 +159,13 @@ function updateRecord() {
 }
 
 function updateText(e?: Event) {
-  const value = e && e.target ? (e.target as HTMLElement).innerHTML : props.params.text//.replace(/\n/g, '<br/>')
+  const value = e && e.target ? (e.target as HTMLElement).innerHTML : props.params.text //.replace(/\n/g, '<br/>')
   if (value !== props.params.text) {
     widgetStore.updateWidgetData({
       uuid: String(props.params.uuid),
       key: 'text',
       value,
-      pushHistory: false,
     })
-    // store.dispatch('updateWidgetData', {
-    //   uuid: props.params.uuid,
-    //   key: 'text',
-    //   value,
-    //   pushHistory: false,
-    // })
   }
 }
 
@@ -197,29 +178,18 @@ function writingText(e?: Event) {
     uuid: String(props.params.uuid),
     key: 'height',
     value: el.offsetHeight,
-    pushHistory: false,
   })
-  // store.dispatch('updateWidgetData', {
-  //   uuid: props.params.uuid,
-  //   key: 'height',
-  //   value: el.offsetHeight,
-  //   pushHistory: false,
-  // })
   forceStore.setUpdateRect()
   // store.commit('updateRect')
 }
 
 function writeDone(e: Event) {
   state.editable = false
-  setTimeout(() => {
-    historyStore.pushHistory("文字修改")
-    // store.dispatch('pushHistory', '文字修改')
-  }, 100)
   updateText(e)
 }
 
 function dblclickText(_: MouseEvent) {
-  // store.commit('setShowMoveable', false)
+  if (state.editable) return
   state.editable = true
   const el = editWrap.value || widget.value
   setTimeout(() => {
@@ -231,9 +201,9 @@ function dblclickText(_: MouseEvent) {
       range.select()
     } else {
       const range = document.createRange()
-      range.selectNodeContents(el);
-      window.getSelection()?.removeAllRanges();
-      window.getSelection()?.addRange(range);
+      range.selectNodeContents(el)
+      window.getSelection()?.removeAllRanges()
+      window.getSelection()?.addRange(range)
     }
   }, 100)
 }

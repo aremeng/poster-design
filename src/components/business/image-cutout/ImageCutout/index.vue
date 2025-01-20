@@ -2,17 +2,18 @@
  * @Author: ShawnPhang
  * @Date: 2024-03-03 19:00:00
  * @Description: 裁剪组件
- * @LastEditors: ShawnPhang <site: book.palxp.com>, Jeremy Yu <https://github.com/JeremyYu-cn>
+ * @LastEditors: ShawnPhang <https://m.palxp.cn>
  * @Date: 2024-03-03 19:00:00
 -->
 <template>
-  <el-dialog v-model="state.show" title="AI 智能抠图" align-center width="650" @close="handleClose">
+  <el-dialog v-model="state.show" title="AI 抠图（模拟演示）" align-center width="650" @close="handleClose">
     <uploader v-if="!state.rawImage" :hold="true" :drag="true" :multiple="true" class="uploader" @load="handleUploaderLoad">
       <div class="uploader__box">
         <upload-filled style="width: 64px; height: 64px" />
-        <div class="el-upload__text">在此拖入或选择<em>上传图片</em></div>
+        <!-- <div class="el-upload__text">在此拖入或选择<em>上传图片</em></div> -->
+        <div class="el-upload__text">自动抠图目前依赖后端服务，需自行部署</div>
       </div>
-      <div class="el-upload__tip">服务器带宽过低，为了更好的体验，请上传 2M 内的图片</div>
+      <div class="el-upload__tip el-upload__text"><em>体验前端效果演示以及修补编辑器，任意上传一张图片即可触发</em></div>
     </uploader>
     <el-progress v-if="!state.cutImage && state.progressText" :percentage="state.progress">
       <el-button text>
@@ -29,10 +30,10 @@
 
     <template #footer>
       <span class="dialog-footer">
-        <el-button v-show="state.rawImage && state.toolModel" @click="clear">清空重选</el-button>
+        <el-button v-show="state.cutImage && state.toolModel" @click="clear">清除重选</el-button>
         <el-button v-show="state.cutImage" type="primary" plain @click="edit">进入编辑模式</el-button>
-        <el-button v-show="state.cutImage && state.toolModel" type="primary" plain @click="download"> 下载 </el-button>
-        <el-button v-show="state.cutImage && !state.toolModel" v-loading="state.loading" type="primary" plain @click="cutDone"> {{ state.loading ? '上传中..' : '完成抠图' }} </el-button>
+        <el-button v-show="state.cutImage && state.toolModel" type="primary" @click="download"> 下载 </el-button>
+        <el-button v-show="state.cutImage && !state.toolModel" v-loading="state.loading" type="primary" @click="cutDone"> {{ state.loading ? '上传中..' : '完成抠图' }} </el-button>
       </span>
     </template>
     <ImageExtraction ref="matting" />
@@ -85,12 +86,13 @@ const raw = ref(null)
 const matting = ref<typeof ImageExtraction | null>(null)
 
 const open = (file: File) => {
+  clear()
   state.loading = false
   state.show = true
-  // store.commit('setShowMoveable', false)
   controlStore.setShowMoveable(false)
   nextTick(() => {
     if (file) {
+      state.toolModel = false // 在编辑模式打开则不展示工具模式下的下载和清除按钮
       handleUploaderLoad(file)
     }
   })
@@ -103,16 +105,15 @@ defineExpose({
 const handleUploaderLoad = (file: File) => {
   selectImageFile(state as TImageCutoutState, raw, file, (result, name) => {
     fileName = name
-    const resultImage = URL.createObjectURL(result)
+    // TODO: 模拟演示
+    // const resultImage = 'https://pic.imgdb.cn/item/6522253ec458853aefb0b013.webp' // URL.createObjectURL(result)
+    const resultImage = 'https://s2.loli.net/2024/08/16/fSxD9wlpiu3IKJv.png'
     state.rawImage && (state.cutImage = resultImage)
     requestAnimationFrame(run)
-    
   })
-  state.toolModel = false
 }
 
 const handleClose = () => {
-  // store.commit('setShowMoveable', true)
   controlStore.setShowMoveable(true)
 }
 
@@ -127,7 +128,6 @@ const download = () => {
 const clear = () => {
   URL.revokeObjectURL(state.rawImage)
   state.rawImage = ''
-  // URL.revokeObjectURL(state.cutImage)
   state.cutImage = ''
   state.percent = 0
   state.offsetWidth = 0

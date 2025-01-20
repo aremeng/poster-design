@@ -3,7 +3,7 @@
  * @Date: 2022-03-09 14:20:09
  * @Description: 处理常用操作
  * @LastEditors: ShawnPhang <https://m.palxp.cn>
- * @LastEditTime: 2024-04-04 00:33:01
+ * @LastEditTime: 2024-04-19 15:55:22
  */
 import { useControlStore, useWidgetStore } from '@/store'
 import { TdWidgetData } from '@/store/design/widget'
@@ -93,10 +93,12 @@ function dealWithSpace(event: any) {
   // 防止编辑文字时空格按不出来
   if (!widgetStore.dActiveElement.editable) {
     event.preventDefault()
-    appContainer.classList.add('move-case');
-    if (!controlStore.dSpaceDown) {
-      widgetStore.lockWidgets()
+    if (widgetStore.dActiveElement?.uuid == '-1') {
+      appContainer.classList.add('move-case')
+      if (!controlStore.dSpaceDown) {
+        widgetStore.lockWidgets()
+      }
+      controlStore.setSpaceDown(true)
     }
-    controlStore.setSpaceDown(true)
   }
 }
